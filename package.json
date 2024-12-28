@@ -1,15 +1,15 @@
 {
   "name": "node-selection",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "description": "Get current selected text by using system accessibility APIs",
   "gypfile": true,
   "main": "index.js",
   "types": "index.d.ts",
-  "author": "Jiahao Lu <lujjjh@gmail.com> (https://github.com/lujjjh)",
+  "author": "Movelocity",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/lujjjh/node-selection"
+    "url": "https://github.com/Movelocity/node-selection"
   },
   "scripts": {
     "install": "node-gyp-build",
@@ -18,11 +18,11 @@
     "prebuild:fat": "npm run prebuild -- --arch x64+arm64"
   },
   "dependencies": {
-    "global-mouse-events": "^1.2.0",
     "node-addon-api": "^4.3.0",
     "node-gyp-build": "^4.4.0"
   },
   "devDependencies": {
+    "global-mouse-events": "^1.2.0",
     "node-fetch": "^3.2.3",
     "prebuildify": "^5.0.0"
   }
