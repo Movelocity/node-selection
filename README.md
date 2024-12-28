@@ -3,6 +3,7 @@
 > Get current selected text by using system accessibility APIs.
 
 This project is forked from [node-selection](https://github.com/lujjjh/node-selection)
+
 **What is New**
 - Enlarge the text selection range, no 256 characters limit.
 - Support text selection in more scenarios such as eletcron, vscode, cursor, etc. You just need to run the program with administrator privileges.
