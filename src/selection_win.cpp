@@ -1,4 +1,3 @@
-
 #include <UIAutomation.h>
 #include <atlbase.h>
 #include <comutil.h>
@@ -13,10 +12,36 @@
 namespace selection_impl {
 using selection::RuntimeException;
 
-void Initialize() { CoInitializeEx(0, COINIT_MULTITHREADED); }
+void Initialize() {
+  // 使用更完整的 COM 初始化
+  HRESULT hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+  if (FAILED(hr)) {
+    throw RuntimeException("Failed to initialize COM");
+  }
+}
 
 bool CheckAccessibilityPermissions(bool prompt) {
-  std::ignore = prompt;
+  // 检查辅助功能权限
+  BOOL isProcessElevated = FALSE;
+  HANDLE hToken = nullptr;
+
+  if (OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &hToken)) {
+    TOKEN_ELEVATION elevation;
+    DWORD size = sizeof(TOKEN_ELEVATION);
+    if (GetTokenInformation(hToken, TokenElevation, &elevation, sizeof(elevation), &size)) {
+      isProcessElevated = elevation.TokenIsElevated;
+    }
+    CloseHandle(hToken);
+  }
+
+  // 检查 UI Automation 权限
+  BOOL accessEnabled = FALSE;
+  if (SystemParametersInfo(SPI_GETSCREENREADER, 0, &accessEnabled, 0) && !accessEnabled) {
+    if (prompt && !isProcessElevated) {
+      // 可以在这里添加提示用户提升权限的代码
+      return false;
+    }
+  }
   return true;
 }
 
@@ -54,11 +79,35 @@ void _OutputElementName(IUIAutomationElement *element) {
 
 CComPtr<IUIAutomation> CreateUIAutomation() {
   CComPtr<IUIAutomation> automation;
-  if (CoCreateInstance(CLSID_CUIAutomation, nullptr, CLSCTX_INPROC_SERVER, IID_IUIAutomation,
-                       reinterpret_cast<void **>(&automation)) != S_OK) {
-    return nullptr;
+
+  // 确保 COM 已经正确初始化
+  HRESULT hrCo = CoInitialize(nullptr);
+  if (FAILED(hrCo) && hrCo != RPC_E_CHANGED_MODE) {
+    throw RuntimeException("COM initialization failed");
   }
-  return automation;
+
+  // 重试机制
+  for (int attempts = 0; attempts < 3; attempts++) {
+    HRESULT hr = CoCreateInstance(CLSID_CUIAutomation, nullptr,
+                                  CLSCTX_INPROC_SERVER | CLSCTX_LOCAL_SERVER, // 添加 LOCAL_SERVER 支持
+                                  IID_IUIAutomation, reinterpret_cast<void **>(&automation));
+
+    if (SUCCEEDED(hr) && automation) {
+      return automation;
+    }
+
+    // 详细的错误信息
+    if (FAILED(hr)) {
+      char errorMsg[256];
+      sprintf_s(errorMsg, "UIAutomation creation failed (attempt %d) with HRESULT: 0x%08X", attempts + 1, hr);
+      // 可以选择在这里输出错误信息或记录日志
+      printf("%s\n", errorMsg);
+    }
+
+    Sleep(500); // 增加重试间隔时间
+  }
+
+  throw RuntimeException("Failed to create UIAutomation after multiple attempts");
 }
 
 Selection GetSelection() {
@@ -132,11 +181,13 @@ Selection GetSelection() {
       if (textRanges->GetElement(i, &textRange) != S_OK) {
         throw RuntimeException("failed to get text range");
       }
-      CComBSTR text;
-      if (textRange->GetText(256, &text) != S_OK) {
+
+      int textLength = -1; // -1 表示获取整个范围的文本
+      CComBSTR fullText;
+      if (textRange->GetText(textLength, &fullText) != S_OK) {
         throw RuntimeException("failed to get text");
       }
-      return {BSTRtoUTF8(text), process};
+      return {BSTRtoUTF8(fullText), process};
     }
   }
 

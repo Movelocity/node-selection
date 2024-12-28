@@ -5,8 +5,18 @@
 ## Installation
 
 ```sh
-npm i node-selection
+git clone <this_repo>
+cd <this_repo>
+npm install
 ```
+
+## Rebuild C++ Module
+C++ code is under `src/`, if you changed the code, use the following command to rebuild.
+```sh
+npm run build
+```
+
+
 
 ## Usage
 

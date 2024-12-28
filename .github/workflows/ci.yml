@@ -1,6 +1,11 @@
 name: 'ci'
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [ main, master ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, master ]
 
 jobs:
   build:
@@ -13,7 +18,7 @@ jobs:
           - name: Ubuntu
             version: latest
           - name: macOS
-            version: 12
+            version: 14
           - name: Windows
             version: 2019
         arch: [x64]
@@ -80,6 +85,6 @@ jobs:
         run: ls -laR prebuilds
 
       - name: Publish to npm
-        run: npm publish
+        run: npm publish --access public --tag alpha
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
